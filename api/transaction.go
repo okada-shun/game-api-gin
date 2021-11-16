@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	"context"
@@ -8,11 +8,40 @@ import (
 	"math/big"
 	"strconv"
 	
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/crypto/sha3"
+	config "local.packages/config"
+	gmtoken "local.packages/gmtoken"
 )
+
+type TransactionAPI struct {
+	MinterPrivateKey string
+	ContractAddress string
+	Gmtoken *gmtoken.Gmtoken
+	Ethclient *ethclient.Client
+}
+
+// transactionインスタンス作成
+func NewTransaction(config *config.Config) (*TransactionAPI, error) {
+	gmtoken, err := NewGmtoken(config)
+	if err != nil {
+		return nil, err
+	}
+	ethclient, err := NewEthclient(config)
+	if err != nil {
+		return nil, err
+	}
+	return &TransactionAPI{
+		MinterPrivateKey: config.MinterPrivateKey,
+		ContractAddress: config.ContractAddress,
+		Gmtoken: gmtoken,
+		Ethclient: ethclient,
+	}, nil
+}
 
 // 16進数の秘密鍵文字列をイーサリアムアドレスに変換
 func convertKeyToAddress(hexkey string) (common.Address, error) {
@@ -32,10 +61,26 @@ func convertKeyToAddress(hexkey string) (common.Address, error) {
 	return address, nil
 }
 
+// 引数の秘密鍵hexkeyからアドレスを生成
+// コントラクトからそのアドレスのゲームトークン残高を取り出す
+// アドレスと残高を返す
+func (a *TransactionAPI) getAddressBalance(hexkey string) (common.Address, int, error) {
+	address, err := convertKeyToAddress(hexkey)
+	if err != nil {
+		return common.Address{}, 0, err
+	}
+	bal, err := a.Gmtoken.BalanceOf(&bind.CallOpts{}, address)
+	if err != nil {
+		return common.Address{}, 0, err
+	}
+	balance, _ := strconv.Atoi(bal.String())
+	return address, balance, nil
+}
+
 // コントラクトから、引数valだけゲームトークンを鋳造する
 // 鋳造されたゲームトークンは、引数hexkeyの秘密鍵から生成されるアドレスに付与される
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
-func (a *UserGachaAPI) MintGmtoken(val int, hexkey string) error {
+func (a *TransactionAPI) mintGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列をアドレスに変換
 	address, err := convertKeyToAddress(hexkey)
 	if err != nil {
@@ -132,7 +177,7 @@ func (a *UserGachaAPI) MintGmtoken(val int, hexkey string) error {
 // コントラクトから、引数valだけゲームトークンを焼却する
 // 引数hexkeyの秘密鍵から生成されるアドレスの持つゲームトークンを焼却する
 // トランザクションの送信者は、引数hexkeyの秘密鍵から生成されるアドレスである
-func (a *UserGachaAPI) BurnGmtoken(val int, hexkey string) error {
+func (a *TransactionAPI) burnGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列を読み込む
 	privateKey, err := crypto.HexToECDSA(hexkey)
 	if err != nil {

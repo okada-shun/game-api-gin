@@ -1,18 +1,19 @@
-module local.packages/controller
+module local.packages/api
 
 go 1.17
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/ethereum/go-ethereum v1.10.11
+	github.com/ethereum/go-ethereum v1.10.12
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/google/uuid v1.3.0
 	github.com/mroth/weightedrand v0.4.1
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	local.packages/config v0.0.0-00010101000000-000000000000
+	local.packages/database v0.0.0-00010101000000-000000000000
 	local.packages/gmtoken v0.0.0-00010101000000-000000000000
 	local.packages/model v0.0.0-00010101000000-000000000000
+	local.packages/util v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -26,6 +27,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
@@ -49,6 +51,10 @@ require (
 
 replace local.packages/config => ../config
 
+replace local.packages/database => ../database
+
 replace local.packages/gmtoken => ../gmtoken
 
 replace local.packages/model => ../model
+
+replace local.packages/util => ../util
