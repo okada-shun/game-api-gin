@@ -18,11 +18,11 @@ type Config struct {
 // configインスタンスを作成
 func NewConfig() *Config {
 	return &Config{
-		Idrsa: "../.ssh/id_rsa",
-		MinterPrivateKey: "./gmtoken/minter_private_key.txt",
-		ContractAddress: "./gmtoken/GameToken_address.txt",
+		Idrsa: "/home/okada_shun/.ssh/id_rsa",
+		MinterPrivateKey: "/home/okada_shun/game-api-gin/gmtoken/minter_private_key.txt",
+		ContractAddress: "/home/okada_shun/game-api-gin/gmtoken/GameToken_address.txt",
 		NetworkURL: "ws://localhost:7545",
-		MysqlPass: "../.ssh/mysql_password",
-		MysqlUser: "../.ssh/mysql_user",
+		MysqlPass: "/home/okada_shun/.ssh/mysql_password",
+		MysqlUser: "/home/okada_shun/.ssh/mysql_user",
 	}
 }
