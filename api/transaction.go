@@ -14,8 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/crypto/sha3"
-	config "local.packages/config"
-	gmtoken "local.packages/gmtoken"
+	"game-api-gin/config"
+	"game-api-gin/gmtoken"
 )
 
 type TransactionAPI struct {

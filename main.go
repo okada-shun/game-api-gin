@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"math/rand"
 
-	config "local.packages/config"
-	database "local.packages/database"
-	router "local.packages/router"
+	"game-api-gin/config"
+	"game-api-gin/database"
+	"game-api-gin/router"
 )
 
 func main() {

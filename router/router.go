@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	api "local.packages/api"
-	config "local.packages/config"
-	database "local.packages/database"
+	"game-api-gin/api"
+	"game-api-gin/config"
+	"game-api-gin/database"
 )
 
 func CreateRouter(db *database.GormDatabase, config *config.Config) (*gin.Engine, error) {

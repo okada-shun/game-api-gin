@@ -5,8 +5,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	config "local.packages/config"
-	gmtoken "local.packages/gmtoken"
+	"game-api-gin/config"
+	"game-api-gin/gmtoken"
 )
 
 // Gmtokenのインスタンスを返す
