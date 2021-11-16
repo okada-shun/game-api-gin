@@ -1,10 +1,12 @@
-module local.packages/server
+module local.packages/router
 
 go 1.17
 
 require (
 	github.com/gin-gonic/gin v1.7.4
-	local.packages/controller v0.0.0-00010101000000-000000000000
+	local.packages/api v0.0.0-00010101000000-000000000000
+	local.packages/config v0.0.0-00010101000000-000000000000
+	local.packages/database v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -12,7 +14,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/ethereum/go-ethereum v1.10.11 // indirect
+	github.com/ethereum/go-ethereum v1.10.12 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
@@ -43,15 +45,19 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.1.3 // indirect
 	gorm.io/gorm v1.22.2 // indirect
-	local.packages/config v0.0.0-00010101000000-000000000000 // indirect
 	local.packages/gmtoken v0.0.0-00010101000000-000000000000 // indirect
 	local.packages/model v0.0.0-00010101000000-000000000000 // indirect
+	local.packages/util v0.0.0-00010101000000-000000000000 // indirect
 )
+
+replace local.packages/api => ../api
 
 replace local.packages/config => ../config
 
-replace local.packages/controller => ../controller
+replace local.packages/database => ../database
 
 replace local.packages/gmtoken => ../gmtoken
 
 replace local.packages/model => ../model
+
+replace local.packages/util => ../util
