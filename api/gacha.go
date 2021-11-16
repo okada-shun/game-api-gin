@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	"encoding/json"
@@ -6,31 +6,32 @@ import (
 	"io/ioutil"
 	"net/http"
 	
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	wr "github.com/mroth/weightedrand"
+	database "local.packages/database"
+	gmtoken "local.packages/gmtoken"
 	model "local.packages/model"
+	util "local.packages/util"
 )
 
-type DrawingGacha struct {
-	GachaID int `json:"gacha_id"`
-	Times   int `json:"times"`
-}
-
-type CharacterResponse struct {
-	CharacterID string `json:"characterID"`
-	Name        string `json:"name"`
-}
-
-type ResultResponse struct {
-	Results []CharacterResponse `json:"results"`
+type GachaAPI struct {
+	Idrsa string
+	MinterPrivateKey string
+	ContractAddress string
+	Gmtoken *gmtoken.Gmtoken
+	DB *database.GormDatabase
+	Ethclient *ethclient.Client
+	AuthToken *AuthTokenAPI
+	Transaction *TransactionAPI
 }
 
 // localhost:8080/gacha/drawでガチャを引いて、キャラクターを取得
 // -H "x-token:yyy"でトークン情報を受け取り、認証
 // -d {"gacha_id":n, "times":x}でどのガチャを引くか、ガチャを何回引くかの情報を受け取る
-func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
-	userId, err := a.getUserId(ctx)
+func (a *GachaAPI) DrawGacha(ctx *gin.Context) {
+	userId, err := a.AuthToken.GetUserId(ctx)
 	if success := successOrAbort(ctx, http.StatusBadRequest, err); !success {
 		return
 	}
@@ -39,7 +40,7 @@ func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
 	if success := successOrAbort(ctx, http.StatusBadRequest, err); !success {
 		return
 	}
-	var drawingGacha DrawingGacha
+	var drawingGacha model.DrawingGacha
 	if success := successOrAbort(ctx, http.StatusBadRequest, json.Unmarshal(body, &drawingGacha)); !success {
 		return
 	}
@@ -71,22 +72,28 @@ func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
 		}
 	}
 	// SELECT * FROM `users` WHERE user_id = '95daec2b-287c-4358-ba6f-5c29e1c3cbdf'
-	user := a.DB.GetUser(userId)
-	// drawingGacha.Times分だけゲームトークンを焼却
-	if success := successOrAbort(ctx, http.StatusInternalServerError, a.BurnGmtoken(drawingGacha.Times, user.PrivateKey)); !success {
+	user, err := a.DB.GetUser(userId)
+	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
 		return
 	}
-	charactersList := a.DB.GetCharacters(drawingGacha.GachaID)
+	// drawingGacha.Times分だけゲームトークンを焼却
+	if success := successOrAbort(ctx, http.StatusInternalServerError, a.Transaction.burnGmtoken(drawingGacha.Times, user.PrivateKey)); !success {
+		return
+	}
+	charactersList, err := a.DB.GetCharacters(drawingGacha.GachaID)
+	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
+		return
+	}
 	gachaCharacterIdsDrawed := drawGachaCharacterIds(charactersList, drawingGacha.Times)
-	var characterInfo CharacterResponse
-	var results []CharacterResponse
+	var characterInfo model.CharacterResponse
+	var results []model.CharacterResponse
 	var userCharacters []model.UserCharacter
 	count := 0
 	for _, gacha_character_id := range gachaCharacterIdsDrawed {
 		character := getCharacterInfo(charactersList, gacha_character_id)
-		characterInfo = CharacterResponse{CharacterID: gacha_character_id, Name: character.CharacterName}
+		characterInfo = model.CharacterResponse{CharacterID: gacha_character_id, Name: character.CharacterName}
 		results = append(results, characterInfo)
-		userCharacterId, err := createUUId()
+		userCharacterId, err := util.CreateUUId()
 		if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
 			return
 		}
@@ -98,7 +105,9 @@ func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
 			//	VALUES ('eaaada0c-3815-4da2-b791-3447a816a3e0','c2f0d74b-0321-4f87-930f-8d85350ee6d4','7b6a8a4e-0ed8-11ec-93f3-a0c58933fdce')
 			//	, ... ,
 			//	('ff1583af-3f60-43de-839c-68094286e11a','c2f0d74b-0321-4f87-930f-8d85350ee6d4','7b6d0b6d-0ed8-11ec-93f3-a0c58933fdce')
-			a.DB.CreateUserCharacters(userCharacters)
+			if success := successOrAbort(ctx, http.StatusInternalServerError, a.DB.CreateUserCharacters(userCharacters)); !success {
+				return
+			}
 			userCharacters = userCharacters[:0]
 			count = 0
 		}
@@ -106,9 +115,11 @@ func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
 	if len(userCharacters) != 0 {
 		//	INSERT INTO `user_characters` (`user_character_id`,`user_id`,`gacha_character_id`)
 		//	VALUES ('98b27372-8806-4d33-950a-68625ed6d687','c2f0d74b-0321-4f87-930f-8d85350ee6d4','7b6c0f26-0ed8-11ec-93f3-a0c58933fdce')
-		a.DB.CreateUserCharacters(userCharacters)
+		if success := successOrAbort(ctx, http.StatusInternalServerError, a.DB.CreateUserCharacters(userCharacters)); !success {
+			return
+		}
 	}
-	resultResponse := &ResultResponse{
+	resultResponse := &model.ResultResponse{
 		Results: results,
 	}
 	ctx.JSON(http.StatusOK, resultResponse)
@@ -123,9 +134,12 @@ func (a *UserGachaAPI) DrawGacha(ctx *gin.Context) {
 
 // dbのgacha_charactersテーブルからgacha_id一覧を取得
 // 引数のgachaIdがその中に含まれていたらtrue、含まれていなかったらfalseを返す
-func (a *UserGachaAPI) gachaIdContains(gachaId int) (bool, error) {
+func (a *GachaAPI) gachaIdContains(gachaId int) (bool, error) {
 	// SELECT gacha_id FROM `gacha_characters`
-	gachaIds := a.DB.GetGachaIds()
+	gachaIds, err := a.DB.GetGachaIds()
+	if err != nil {
+		return false, err
+	}
 	for _, v := range gachaIds {
 		if v == gachaId {
 			return true, nil
@@ -137,10 +151,13 @@ func (a *UserGachaAPI) gachaIdContains(gachaId int) (bool, error) {
 // dbのusersテーブルからuser_idが引数userIdのユーザ情報を取得
 // コントラクトからそのユーザアドレスのゲームトークン残高を取得
 // 引数のtimesが残高以下だったらtrue、残高より大きかったらfalseを返す
-func (a *UserGachaAPI) checkBalance(userId string, times int) (bool, error) {
+func (a *GachaAPI) checkBalance(userId string, times int) (bool, error) {
 	// SELECT * FROM `users` WHERE user_id = '95daec2b-287c-4358-ba6f-5c29e1c3cbdf'
-	user := a.DB.GetUser(userId)
-	_, balance, err := a.getAddressBalance(user.PrivateKey)
+	user, err := a.DB.GetUser(userId)
+	if err != nil {
+		return false, err
+	}
+	_, balance, err := a.Transaction.getAddressBalance(user.PrivateKey)
 	if err != nil {
 		return false, err
 	}
@@ -172,39 +189,35 @@ func getCharacterInfo(charactersList []model.Character, gacha_character_id strin
 	return model.Character{}
 }
 
-type UserCharacterResponse struct {
-	UserCharacterID string `json:"userCharacterID"`
-	CharacterID     string `json:"characterID"`
-	Name            string `json:"name"`
-}
-
-type CharactersResponse struct {
-	Characters []UserCharacterResponse `json:"characters"`
-}
-
 // localhost:8080/character/listでユーザが所持しているキャラクター一覧情報を取得
 // -H "x-token:yyy"でトークン情報を受け取り、認証
-func (a *UserGachaAPI) GetCharacterList(ctx *gin.Context) {
-	userId, err := a.getUserId(ctx)
+func (a *GachaAPI) GetCharacterList(ctx *gin.Context) {
+	userId, err := a.AuthToken.GetUserId(ctx)
 	if success := successOrAbort(ctx, http.StatusBadRequest, err); !success {
 		return
 	}
-	allCharactersList := a.DB.GetAllCharacters()
-	userCharactersList := a.DB.GetUserCharacters(userId)
-	var characters []UserCharacterResponse
-	var userCharacterInfo UserCharacterResponse
+	allCharactersList, err := a.DB.GetAllCharacters()
+	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
+		return
+	}
+	userCharactersList, err := a.DB.GetUserCharacters(userId)
+	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
+		return
+	}
+	var characters []model.UserCharacterResponse
+	var userCharacterInfo model.UserCharacterResponse
 	if len(userCharactersList) == 0 {
-		characters = make([]UserCharacterResponse, 0)
+		characters = make([]model.UserCharacterResponse, 0)
 	} else {
 		for _, v := range userCharactersList {
 			gacha_character_id := v.GachaCharacterID
 			character := getCharacterInfo(allCharactersList, gacha_character_id)
 			characterName := character.CharacterName
-			userCharacterInfo = UserCharacterResponse{UserCharacterID: v.UserCharacterID, CharacterID: gacha_character_id, Name: characterName}
+			userCharacterInfo = model.UserCharacterResponse{UserCharacterID: v.UserCharacterID, CharacterID: gacha_character_id, Name: characterName}
 			characters = append(characters, userCharacterInfo)
 		}
 	}
-	charactersResponse := &CharactersResponse{
+	charactersResponse := &model.CharactersResponse{
 		Characters: characters,
 	}
 	ctx.JSON(http.StatusOK, charactersResponse)

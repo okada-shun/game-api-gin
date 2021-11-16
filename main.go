@@ -5,14 +5,29 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	server "local.packages/server"
+
+	config "local.packages/config"
+	database "local.packages/database"
+	router "local.packages/router"
 )
 
 func main() {
-	// 乱数のシード値を設定
 	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	rand.Seed(seed.Int64())
-	// サーバー起動
-	r := server.GetRouter()
+
+	config := config.NewConfig()
+	db, err := database.NewDatabase(config)
+	if err != nil {
+		panic(err)
+	}
+	db_sql, err := db.DB.DB()
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close(db_sql)
+	r, err := router.CreateRouter(db, config)
+	if err != nil {
+		panic(err)
+	}
 	r.Run("localhost:8080")
 }
