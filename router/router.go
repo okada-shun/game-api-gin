@@ -25,9 +25,9 @@ func CreateRouter(db *database.GormDatabase, config *config.Config) (*gin.Engine
 		return nil, err
 	}
 	userHandler := &api.UserAPI{
-		Idrsa: config.Idrsa,
-		MinterPrivateKey: config.MinterPrivateKey,
-		ContractAddress: config.ContractAddress,
+		Idrsa: config.AuthToken.Idrsa,
+		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
+		ContractAddress: config.Ethereum.ContractAddress,
 		Gmtoken: gmtoken,
 		DB: db,
 		Ethclient: ethclient,
@@ -35,9 +35,9 @@ func CreateRouter(db *database.GormDatabase, config *config.Config) (*gin.Engine
 		Transaction: transaction,
 	}
 	gachaHandler := &api.GachaAPI{
-		Idrsa: config.Idrsa,
-		MinterPrivateKey: config.MinterPrivateKey,
-		ContractAddress: config.ContractAddress,
+		Idrsa: config.AuthToken.Idrsa,
+		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
+		ContractAddress: config.Ethereum.ContractAddress,
 		Gmtoken: gmtoken,
 		DB: db,
 		Ethclient: ethclient,

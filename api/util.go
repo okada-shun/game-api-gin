@@ -11,12 +11,12 @@ import (
 
 // Gmtokenのインスタンスを返す
 func NewGmtoken(config *config.Config) (*gmtoken.Gmtoken, error) {
-	client, err := ethclient.Dial(config.NetworkURL)
+	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
 	if err != nil {
 		return nil, err
 	}
 	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(config.ContractAddress)
+	contractAddressBytes, err := ioutil.ReadFile(config.Ethereum.ContractAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func NewGmtoken(config *config.Config) (*gmtoken.Gmtoken, error) {
 
 // イーサリアムネットワークに接続するクライアントを返す
 func NewEthclient(config *config.Config) (*ethclient.Client, error) {
-	client, err := ethclient.Dial(config.NetworkURL)
+	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
 	if err != nil {
 		return nil, err
 	}

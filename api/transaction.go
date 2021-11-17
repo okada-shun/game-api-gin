@@ -36,8 +36,8 @@ func NewTransaction(config *config.Config) (*TransactionAPI, error) {
 		return nil, err
 	}
 	return &TransactionAPI{
-		MinterPrivateKey: config.MinterPrivateKey,
-		ContractAddress: config.ContractAddress,
+		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
+		ContractAddress: config.Ethereum.ContractAddress,
 		Gmtoken: gmtoken,
 		Ethclient: ethclient,
 	}, nil

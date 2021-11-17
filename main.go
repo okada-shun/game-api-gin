@@ -15,7 +15,10 @@ func main() {
 	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	rand.Seed(seed.Int64())
 
-	config := config.NewConfig()
+	config, err := config.NewConfig()
+	if err != nil {
+		panic(err)
+	}
 	db, err := database.NewDatabase(config)
 	if err != nil {
 		panic(err)
