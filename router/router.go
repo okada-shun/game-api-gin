@@ -3,53 +3,42 @@ package router
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"game-api-gin/api"
+	"game-api-gin/auth"
 	"game-api-gin/config"
 	"game-api-gin/database"
+	"game-api-gin/gmtoken"
+
+	"github.com/gin-gonic/gin"
 )
 
 func CreateRouter(db *database.GormDatabase, config *config.Config) (*gin.Engine, error) {
 	router := gin.Default()
-	gmtoken, err := api.NewGmtoken(config)
-	if err != nil {
-		return nil, err
-	}
-	ethclient, err := api.NewEthclient(config)
-	if err != nil {
-		return nil, err
-	}
-	authToken := api.NewAuthToken(config)
-	transaction, err := api.NewTransaction(config)
+	auth := auth.NewAuth(config)
+	gmtokenTx, err := gmtoken.NewGmtokenTx(config)
 	if err != nil {
 		return nil, err
 	}
 	userHandler := &api.UserAPI{
-		Idrsa: config.AuthToken.Idrsa,
-		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
-		ContractAddress: config.Ethereum.ContractAddress,
-		Gmtoken: gmtoken,
+		Auth: auth,
 		DB: db,
-		Ethclient: ethclient,
-		AuthToken: authToken,
-		Transaction: transaction,
+		Tx: gmtokenTx,
 	}
 	gachaHandler := &api.GachaAPI{
-		Idrsa: config.AuthToken.Idrsa,
-		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
-		ContractAddress: config.Ethereum.ContractAddress,
-		Gmtoken: gmtoken,
+		Auth: auth,
 		DB: db,
-		Ethclient: ethclient,
-		AuthToken: authToken,
-		Transaction: transaction,
+		Tx: gmtokenTx,
+	}
+	characterHandler := &api.CharacterAPI{
+		Auth: auth,
+		DB: db,
 	}
 	router.GET("/", home)
 	router.POST("/user/create", userHandler.CreateUser)
 	router.GET("/user/get", userHandler.GetUser)
 	router.PUT("/user/update", userHandler.UpdateUser)
 	router.POST("/gacha/draw", gachaHandler.DrawGacha)
-	router.GET("/character/list", gachaHandler.GetCharacterList)
+	router.GET("/character/list", characterHandler.GetCharacterList)
 	return router, nil
 }
 

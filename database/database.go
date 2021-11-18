@@ -1,13 +1,13 @@
 package database
 
 import (
-	"database/sql"
 	"io/ioutil"
+
+	"game-api-gin/config"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"game-api-gin/config"
 )
 
 type GormDatabase struct {
@@ -35,6 +35,10 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	}, nil
 }
 
-func (d *GormDatabase) Close(db_sql *sql.DB) {
+func (d *GormDatabase) Close() {
+	db_sql, err := d.DB.DB()
+	if err != nil {
+		panic(err)
+	}
 	db_sql.Close()
 }

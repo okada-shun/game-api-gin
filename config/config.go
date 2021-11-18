@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	AuthToken struct {
+	Auth struct {
 		Idrsa string `yaml:"idrsa"`
 	}
 	Ethereum struct {
@@ -39,7 +39,7 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		AuthToken: cfg.AuthToken,
+		Auth: cfg.Auth,
 		Ethereum: cfg.Ethereum,
 		Mysql: cfg.Mysql,
 	}, nil

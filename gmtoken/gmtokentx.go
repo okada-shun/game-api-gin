@@ -1,4 +1,4 @@
-package api
+package gmtoken
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"math/big"
 	"strconv"
+
+	"game-api-gin/config"
 	
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,31 +16,56 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/crypto/sha3"
-	"game-api-gin/config"
-	"game-api-gin/gmtoken"
 )
 
-type TransactionAPI struct {
-	MinterPrivateKey string
-	ContractAddress string
-	Gmtoken *gmtoken.Gmtoken
+type GmtokenTx struct {
+	Config *config.Config
 	Ethclient *ethclient.Client
+	Gmtoken *Gmtoken
 }
 
-// transactionインスタンス作成
-func NewTransaction(config *config.Config) (*TransactionAPI, error) {
-	gmtoken, err := NewGmtoken(config)
+// Gmtokenのインスタンスを返す
+func getGmtokenInstance(config *config.Config) (*Gmtoken, error) {
+	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
 	if err != nil {
 		return nil, err
 	}
-	ethclient, err := NewEthclient(config)
+	// GameTokenコントラクトのアドレスを読み込む
+	contractAddressBytes, err := ioutil.ReadFile(config.Ethereum.ContractAddress)
 	if err != nil {
 		return nil, err
 	}
-	return &TransactionAPI{
-		MinterPrivateKey: config.Ethereum.MinterPrivateKey,
-		ContractAddress: config.Ethereum.ContractAddress,
-		Gmtoken: gmtoken,
+	contractAddress := common.HexToAddress(string(contractAddressBytes))
+	// 上のコントラクトアドレスのGmtokenインスタンスを作成
+	instance, err := NewGmtoken(contractAddress, client)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
+}
+
+// イーサリアムネットワークに接続するクライアントを返す
+func getEthclient(config *config.Config) (*ethclient.Client, error) {
+	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// GmtokenTxインスタンス作成
+func NewGmtokenTx(config *config.Config) (*GmtokenTx, error) {
+	gmtokenInstance, err := getGmtokenInstance(config)
+	if err != nil {
+		return nil, err
+	}
+	ethclient, err := getEthclient(config)
+	if err != nil {
+		return nil, err
+	}
+	return &GmtokenTx{
+		Config: config,
+		Gmtoken: gmtokenInstance,
 		Ethclient: ethclient,
 	}, nil
 }
@@ -64,7 +91,7 @@ func convertKeyToAddress(hexkey string) (common.Address, error) {
 // 引数の秘密鍵hexkeyからアドレスを生成
 // コントラクトからそのアドレスのゲームトークン残高を取り出す
 // アドレスと残高を返す
-func (a *TransactionAPI) getAddressBalance(hexkey string) (common.Address, int, error) {
+func (a *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error) {
 	address, err := convertKeyToAddress(hexkey)
 	if err != nil {
 		return common.Address{}, 0, err
@@ -80,14 +107,14 @@ func (a *TransactionAPI) getAddressBalance(hexkey string) (common.Address, int, 
 // コントラクトから、引数valだけゲームトークンを鋳造する
 // 鋳造されたゲームトークンは、引数hexkeyの秘密鍵から生成されるアドレスに付与される
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
-func (a *TransactionAPI) mintGmtoken(val int, hexkey string) error {
+func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列をアドレスに変換
 	address, err := convertKeyToAddress(hexkey)
 	if err != nil {
 		return err
 	}
 	// トランザクションを送るアドレスの秘密鍵を読み込む
-	privateKeyBytes, err := ioutil.ReadFile(a.MinterPrivateKey)
+	privateKeyBytes, err := ioutil.ReadFile(a.Config.Ethereum.MinterPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -114,7 +141,7 @@ func (a *TransactionAPI) mintGmtoken(val int, hexkey string) error {
 	}
 	// fmt.Println(gasPrice) // 20000000000
 	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(a.ContractAddress)
+	contractAddressBytes, err := ioutil.ReadFile(a.Config.Ethereum.ContractAddress)
 	if err != nil {
 		return err
 	}
@@ -177,7 +204,7 @@ func (a *TransactionAPI) mintGmtoken(val int, hexkey string) error {
 // コントラクトから、引数valだけゲームトークンを焼却する
 // 引数hexkeyの秘密鍵から生成されるアドレスの持つゲームトークンを焼却する
 // トランザクションの送信者は、引数hexkeyの秘密鍵から生成されるアドレスである
-func (a *TransactionAPI) burnGmtoken(val int, hexkey string) error {
+func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列を読み込む
 	privateKey, err := crypto.HexToECDSA(hexkey)
 	if err != nil {
@@ -204,7 +231,7 @@ func (a *TransactionAPI) burnGmtoken(val int, hexkey string) error {
 	}
 	// fmt.Println(gasPrice) // 20000000000
 	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(a.ContractAddress)
+	contractAddressBytes, err := ioutil.ReadFile(a.Config.Ethereum.ContractAddress)
 	if err != nil {
 		return err
 	}
