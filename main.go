@@ -6,8 +6,10 @@ import (
 	"math/big"
 	"math/rand"
 
+	"game-api-gin/auth"
 	"game-api-gin/config"
 	"game-api-gin/database"
+	"game-api-gin/gmtoken"
 	"game-api-gin/router"
 )
 
@@ -19,14 +21,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	auth := auth.NewAuth(config)
 	db, err := database.NewDatabase(config)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
-	r, err := router.CreateRouter(db, config)
+	gmtokenTx, err := gmtoken.NewGmtokenTx(config)
 	if err != nil {
 		panic(err)
 	}
+	r := router.CreateRouter(auth, db, gmtokenTx)
 	r.Run("localhost:8080")
 }

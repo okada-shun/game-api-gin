@@ -1,11 +1,11 @@
-package util
+package api
 
 import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func SuccessOrAbort(ctx *gin.Context, code int, err error) (success bool) {
+func successOrAbort(ctx *gin.Context, code int, err error) (success bool) {
 	if err != nil {
 		ctx.AbortWithError(code, err)
 	}

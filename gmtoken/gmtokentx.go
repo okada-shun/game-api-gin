@@ -91,12 +91,12 @@ func convertKeyToAddress(hexkey string) (common.Address, error) {
 // 引数の秘密鍵hexkeyからアドレスを生成
 // コントラクトからそのアドレスのゲームトークン残高を取り出す
 // アドレスと残高を返す
-func (a *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error) {
+func (g *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error) {
 	address, err := convertKeyToAddress(hexkey)
 	if err != nil {
 		return common.Address{}, 0, err
 	}
-	bal, err := a.Gmtoken.BalanceOf(&bind.CallOpts{}, address)
+	bal, err := g.Gmtoken.BalanceOf(&bind.CallOpts{}, address)
 	if err != nil {
 		return common.Address{}, 0, err
 	}
@@ -107,14 +107,14 @@ func (a *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error
 // コントラクトから、引数valだけゲームトークンを鋳造する
 // 鋳造されたゲームトークンは、引数hexkeyの秘密鍵から生成されるアドレスに付与される
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
-func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
+func (g *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列をアドレスに変換
 	address, err := convertKeyToAddress(hexkey)
 	if err != nil {
 		return err
 	}
 	// トランザクションを送るアドレスの秘密鍵を読み込む
-	privateKeyBytes, err := ioutil.ReadFile(a.Config.Ethereum.MinterPrivateKey)
+	privateKeyBytes, err := ioutil.ReadFile(g.Config.Ethereum.MinterPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -128,20 +128,20 @@ func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 		return err
 	}
 	// ナンスを生成
-	nonce, err := a.Ethclient.PendingNonceAt(context.Background(), fromAddress)
+	nonce, err := g.Ethclient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return err
 	}
 	// 転送するイーサの量を設定(ここでは0)
 	value := big.NewInt(0)
 	// ガス価格を設定（SuggestGasPriceで平均のガス価格を取得）
-	gasPrice, err := a.Ethclient.SuggestGasPrice(context.Background())
+	gasPrice, err := g.Ethclient.SuggestGasPrice(context.Background())
 	if err != nil {
 		return err
 	}
 	// fmt.Println(gasPrice) // 20000000000
 	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(a.Config.Ethereum.ContractAddress)
+	contractAddressBytes, err := ioutil.ReadFile(g.Config.Ethereum.ContractAddress)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	data = append(data, paddedAmount...)
 	/*
 		// EstimateGasでガス制限を推定
-		gasLimit, err := a.Ethclient.EstimateGas(context.Background(), ethereum.CallMsg{
+		gasLimit, err := g.Ethclient.EstimateGas(context.Background(), ethereum.CallMsg{
 			To:   &contractAddress,
 			Data: data,
 		})
@@ -180,7 +180,7 @@ func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	// ナンス、コントラクトのアドレス、転送するイーサ量(0)、ガス制限、ガス価格、データからトランザクションを作成
 	tx := types.NewTransaction(nonce, contractAddress, value, gasLimit, gasPrice, data)
 	// チェーンID(ネットワークID)を取得
-	chainID, err := a.Ethclient.NetworkID(context.Background())
+	chainID, err := g.Ethclient.NetworkID(context.Background())
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	}
 	// fmt.Println(signedTx) // &{0xc00006e5a0 {13858186735851446500 49580235901 0xef4fa0} {<nil>} {<nil>} {<nil>}}
 	// トランザクションを送信
-	err = a.Ethclient.SendTransaction(context.Background(), signedTx)
+	err = g.Ethclient.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (a *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 // コントラクトから、引数valだけゲームトークンを焼却する
 // 引数hexkeyの秘密鍵から生成されるアドレスの持つゲームトークンを焼却する
 // トランザクションの送信者は、引数hexkeyの秘密鍵から生成されるアドレスである
-func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
+func (g *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列を読み込む
 	privateKey, err := crypto.HexToECDSA(hexkey)
 	if err != nil {
@@ -218,20 +218,20 @@ func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	// トランザクションを送るアドレス
 	fromAddress := address
 	// ナンスを生成
-	nonce, err := a.Ethclient.PendingNonceAt(context.Background(), fromAddress)
+	nonce, err := g.Ethclient.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return err
 	}
 	// 転送するイーサの量を設定(ここでは0)
 	value := big.NewInt(0)
 	// ガス価格を設定（SuggestGasPriceで平均のガス価格を取得）
-	gasPrice, err := a.Ethclient.SuggestGasPrice(context.Background())
+	gasPrice, err := g.Ethclient.SuggestGasPrice(context.Background())
 	if err != nil {
 		return err
 	}
 	// fmt.Println(gasPrice) // 20000000000
 	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(a.Config.Ethereum.ContractAddress)
+	contractAddressBytes, err := ioutil.ReadFile(g.Config.Ethereum.ContractAddress)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	data = append(data, paddedAmount...)
 	/*
 		// EstimateGasでガス制限を推定
-		gasLimit, err := a.Ethclient.EstimateGas(context.Background(), ethereum.CallMsg{
+		gasLimit, err := g.Ethclient.EstimateGas(context.Background(), ethereum.CallMsg{
 			To:   &contractAddress,
 			Data: data,
 		})
@@ -267,7 +267,7 @@ func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	// ナンス、コントラクトのアドレス、転送するイーサ量(0)、ガス制限、ガス価格、データからトランザクションを作成
 	tx := types.NewTransaction(nonce, contractAddress, value, gasLimit, gasPrice, data)
 	// チェーンID(ネットワークID)を取得
-	chainID, err := a.Ethclient.NetworkID(context.Background())
+	chainID, err := g.Ethclient.NetworkID(context.Background())
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func (a *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 	}
 	// fmt.Println(signedTx) // &{0xc00012bf20 {13858187368593859236 638888717301 0xef4fa0} {<nil>} {<nil>} {<nil>}}
 	// トランザクションを送信
-	err = a.Ethclient.SendTransaction(context.Background(), signedTx)
+	err = g.Ethclient.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		return err
 	}
