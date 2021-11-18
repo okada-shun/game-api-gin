@@ -22,7 +22,7 @@ type Config struct {
 }
 
 func loadConfigForYaml() (*Config, error) {
-	f, err := os.Open("config.yml")
+	f, err := os.Open("/home/okada_shun/game-api-gin/config.yml")
 	if err != nil {
 		return nil, err
 	}
