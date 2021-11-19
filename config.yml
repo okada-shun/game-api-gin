@@ -1,0 +1,13 @@
+# configuration file for game-api-gin
+
+auth: 
+  idrsa: /home/okada_shun/.ssh/id_rsa
+
+ethereum: 
+  minterprivatekey: /home/okada_shun/game-api-gin/gmtoken/minter_private_key.txt
+  contractaddress: /home/okada_shun/game-api-gin/gmtoken/GameToken_address.txt
+  networkurl: ws://localhost:7545
+
+mysql: 
+  password: /home/okada_shun/.ssh/mysql_password
+  user: /home/okada_shun/.ssh/mysql_user
