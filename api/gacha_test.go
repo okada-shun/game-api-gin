@@ -57,7 +57,7 @@ func (s *GachaSuite) AfterTest(suiteName, testName string) {
 	s.T().Log("AfterTest!!")
 }
 
-func (s *GachaSuite) Test_DrawGacha() {
+func (s *GachaSuite) SetTokenKey() {
 	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"satou"}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.uapi.CreateUser(s.ctx)
@@ -72,8 +72,12 @@ func (s *GachaSuite) Test_DrawGacha() {
 	user, err := s.db.GetUser(userId)
 	assert.Nil(s.T(), err)
 	s.privatekey = user.PrivateKey
+}
 
+func (s *GachaSuite) Test_DrawGacha() {
+	s.SetTokenKey()
 	s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
+
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":10}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -81,14 +85,34 @@ func (s *GachaSuite) Test_DrawGacha() {
 	s.gapi.DrawGacha(s.ctx)
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ = ioutil.ReadAll(s.recorder.Body)
+	body, _ := ioutil.ReadAll(s.recorder.Body)
 	var drawGachaResponse DrawGachaResponse
 	json.Unmarshal(body, &drawGachaResponse)
 	assert.Equal(s.T(), 10, len(drawGachaResponse.Results))
+	
+	s.ctx.Request = httptest.NewRequest("GET", "/user/get", nil)
+	s.ctx.Request.Header.Set("Content-Type", "application/json")
+	s.ctx.Request.Header.Set("x-token", s.token)
+
+	s.uapi.GetUser(s.ctx)
+
+	body, _ = ioutil.ReadAll(s.recorder.Body)
+	var getUserResponse GetUserResponse
+	json.Unmarshal(body, &getUserResponse)
+	assert.Equal(s.T(), 90, getUserResponse.GmtokenBalance)
+}
+
+func (s *GachaSuite) Test_DrawGacha_WithoutEnoughEth() {
+	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":10}`))
+	s.ctx.Request.Header.Set("Content-Type", "application/json")
+	s.ctx.Request.Header.Set("x-token", s.token)
+
+	s.gapi.DrawGacha(s.ctx)
+
+	assert.Equal(s.T(), 500, s.recorder.Code)
 }
 
 func (s *GachaSuite) Test_DrawGacha_ByInvalidToken() {
-	//s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":10}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", "InvalidToken")
@@ -99,7 +123,6 @@ func (s *GachaSuite) Test_DrawGacha_ByInvalidToken() {
 }
 
 func (s *GachaSuite) Test_DrawGacha_ByInvalidGachaID() {
-	//s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":10,"times":10}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -110,7 +133,6 @@ func (s *GachaSuite) Test_DrawGacha_ByInvalidGachaID() {
 }
 
 func (s *GachaSuite) Test_DrawGacha_ByZeroTimes() {
-	//s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":0}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -121,7 +143,6 @@ func (s *GachaSuite) Test_DrawGacha_ByZeroTimes() {
 }
 
 func (s *GachaSuite) Test_DrawGacha_ByMinusTimes() {
-	//s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":-10}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -132,7 +153,6 @@ func (s *GachaSuite) Test_DrawGacha_ByMinusTimes() {
 }
 
 func (s *GachaSuite) Test_DrawGacha_ByExcessiveTimes() {
-	//s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":1000}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)

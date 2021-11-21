@@ -86,7 +86,7 @@ func (s *UserSuite) Test_CreateUser_ByNil() {
 	assert.Equal(s.T(), 400, s.recorder.Code)
 }
 
-func (s *UserSuite) Test_GetUser() {
+func (s *UserSuite) SetToken() {
 	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"mike"}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.uapi.CreateUser(s.ctx)
@@ -94,7 +94,10 @@ func (s *UserSuite) Test_GetUser() {
 	var createUserResponse CreateUserResponse
 	json.Unmarshal(body, &createUserResponse)
 	s.token = createUserResponse.Token
+}
 
+func (s *UserSuite) Test_GetUser() {
+	s.SetToken()
 	s.ctx.Request = httptest.NewRequest("GET", "/user/get", nil)
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -102,7 +105,7 @@ func (s *UserSuite) Test_GetUser() {
 	s.uapi.GetUser(s.ctx)
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ = ioutil.ReadAll(s.recorder.Body)
+	body, _ := ioutil.ReadAll(s.recorder.Body)
 	var getUserResponse GetUserResponse
 	json.Unmarshal(body, &getUserResponse)
 	assert.Equal(s.T(), "mike", getUserResponse.Name)
@@ -120,14 +123,7 @@ func (s *UserSuite) Test_GetUser_ByInvalidToken() {
 }
 
 func (s *UserSuite) Test_UpdateUser() {
-	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"chen"}`))
-	s.ctx.Request.Header.Set("Content-Type", "application/json")
-	s.uapi.CreateUser(s.ctx)
-	body, _ := ioutil.ReadAll(s.recorder.Body)
-	var createUserResponse CreateUserResponse
-	json.Unmarshal(body, &createUserResponse)
-	s.token = createUserResponse.Token
-	
+	s.SetToken()
 	s.ctx.Request = httptest.NewRequest("PUT", "/user/update", strings.NewReader(`{"name":"wang"}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)

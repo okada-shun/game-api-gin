@@ -60,8 +60,8 @@ func (s *CharacterSuite) AfterTest(suiteName, testName string) {
 	s.T().Log("AfterTest!!")
 }
 
-func (s *CharacterSuite) Test_GetCharacterList() {
-	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"macdonald"}`))
+func (s *CharacterSuite) SetTokenKey() {
+	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"satou"}`))
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.uapi.CreateUser(s.ctx)
 	body, _ := ioutil.ReadAll(s.recorder.Body)
@@ -75,7 +75,10 @@ func (s *CharacterSuite) Test_GetCharacterList() {
 	user, err := s.db.GetUser(userId)
 	assert.Nil(s.T(), err)
 	s.privatekey = user.PrivateKey
+}
 
+func (s *CharacterSuite) Test_GetCharacterList() {
+	s.SetTokenKey()
 	s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
 
 	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
@@ -85,7 +88,7 @@ func (s *CharacterSuite) Test_GetCharacterList() {
 	s.capi.GetCharacterList(s.ctx)
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ = ioutil.ReadAll(s.recorder.Body)
+	body, _ := ioutil.ReadAll(s.recorder.Body)
 	var getCharacterListResponse GetCharacterListResponse
 	json.Unmarshal(body, &getCharacterListResponse)
 	assert.Equal(s.T(), 0, len(getCharacterListResponse.Characters))
@@ -111,27 +114,9 @@ func (s *CharacterSuite) Test_GetCharacterList() {
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
 	body, _ = ioutil.ReadAll(s.recorder.Body)
-	//var getCharacterListResponse GetCharacterListResponse
 	json.Unmarshal(body, &getCharacterListResponse)
 	assert.Equal(s.T(), 10, len(getCharacterListResponse.Characters))
 }
-
-/*
-func (s *CharacterSuite) Test_GetCharacterList_WithZeroDrawGacha() {
-	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
-	s.ctx.Request.Header.Set("Content-Type", "application/json")
-	s.ctx.Request.Header.Set("x-token", s.token)
-
-	s.capi.GetCharacterList(s.ctx)
-
-	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ := ioutil.ReadAll(s.recorder.Body)
-	var getCharacterListResponse GetCharacterListResponse
-	json.Unmarshal(body, &getCharacterListResponse)
-	assert.Equal(s.T(), 0, len(getCharacterListResponse.Characters))
-	assert.Equal(s.T(), []model.Character{}, getCharacterListResponse.Characters)
-}
-*/
 
 func (s *CharacterSuite) Test_GetCharacterList_ByInvalidToken() {
 	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
