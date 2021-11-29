@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	AuthToken struct {
+	Auth struct {
 		Idrsa string `yaml:"idrsa"`
 	}
 	Ethereum struct {
@@ -22,7 +22,7 @@ type Config struct {
 }
 
 func loadConfigForYaml() (*Config, error) {
-	f, err := os.Open("config.yml")
+	f, err := os.Open("/home/okada_shun/game-api-gin/config.yml")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		AuthToken: cfg.AuthToken,
+		Auth: cfg.Auth,
 		Ethereum: cfg.Ethereum,
 		Mysql: cfg.Mysql,
 	}, nil

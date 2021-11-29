@@ -4,25 +4,31 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
+
+	"game-api-gin/auth"
 	"game-api-gin/database"
 	"game-api-gin/gmtoken"
 	"game-api-gin/model"
 	"game-api-gin/util"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type UserAPI struct {
-	Idrsa string
-	MinterPrivateKey string
-	ContractAddress string
-	Gmtoken *gmtoken.Gmtoken
+	Auth *auth.Auth
 	DB *database.GormDatabase
-	Ethclient *ethclient.Client
-	AuthToken *AuthTokenAPI
-	Transaction *TransactionAPI
+	Tx *gmtoken.GmtokenTx
+}
+
+type CreateUserResponse struct {
+	Token string `json:"token"`
+}
+
+type GetUserResponse struct {
+	Name           string `json:"name"`
+	Address        string `json:"address"`
+	GmtokenBalance int    `json:"gmtoken_balance"`
 }
 
 // localhost:8080/user/createでユーザ情報を作成
@@ -51,7 +57,7 @@ func (a *UserAPI) CreateUser(ctx *gin.Context) {
 	}
 	user.PrivateKey = privateKeyHex
 	// ゲームトークンを100だけ鋳造し、新規ユーザに付与
-	if success := successOrAbort(ctx, http.StatusInternalServerError, a.Transaction.mintGmtoken(100, user.PrivateKey)); !success {
+	if success := successOrAbort(ctx, http.StatusInternalServerError, a.Tx.MintGmtoken(100, user.PrivateKey)); !success {
 		return
 	}
 	//	INSERT INTO `users` (`user_id`,`name`,`private_key`)
@@ -60,15 +66,15 @@ func (a *UserAPI) CreateUser(ctx *gin.Context) {
 		return
 	}
 	// ユーザIDの文字列からjwtでトークン作成
-	token, err := a.AuthToken.CreateToken(userId)
+	token, err := a.Auth.CreateToken(userId)
 	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
 		return
 	}
 	// token = "生成されたトークンの文字列"
-	tokenResponse := &model.TokenResponse{
+	createUserResponse := &CreateUserResponse{
 		Token: token,
 	}
-	ctx.JSON(http.StatusOK, tokenResponse)
+	ctx.JSON(http.StatusOK, createUserResponse)
 	// {"token":"生成されたトークンの文字列"}が返る
 }
 
@@ -77,7 +83,7 @@ func (a *UserAPI) CreateUser(ctx *gin.Context) {
 // 秘密鍵からユーザアドレスを生成
 // コントラクトからそのユーザアドレスのゲームトークン残高を取り出し、返す
 func (a *UserAPI) GetUser(ctx *gin.Context) {
-	userId, err := a.AuthToken.GetUserId(ctx)
+	userId, err := a.Auth.GetUserId(ctx)
 	if success := successOrAbort(ctx, http.StatusBadRequest, err); !success {
 		return
 	}
@@ -86,16 +92,16 @@ func (a *UserAPI) GetUser(ctx *gin.Context) {
 	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
 		return
 	}
-	address, balance, err := a.Transaction.getAddressBalance(user.PrivateKey)
+	address, balance, err := a.Tx.GetAddressBalance(user.PrivateKey)
 	if success := successOrAbort(ctx, http.StatusInternalServerError, err); !success {
 		return
 	}
-	userResponse := &model.UserResponse{
+	getUserResponse := &GetUserResponse{
 		Name:           user.Name,
 		Address:        address.String(),
 		GmtokenBalance: balance,
 	}
-	ctx.JSON(http.StatusOK, userResponse)
+	ctx.JSON(http.StatusOK, getUserResponse)
 	// {"name":"aaa","address":"0x7a242084216fC7810aAe02c6deE5D9092C6B8fb9","gmtoken_balance":40}が返る
 	// 有効期限が切れると{"code":400,"message":"Token is expired"}が返る
 }
@@ -104,7 +110,7 @@ func (a *UserAPI) GetUser(ctx *gin.Context) {
 // -d {"name":"bbb"}で更新する名前データを受け取る
 // トークンからユーザIDを取り出し、dbからそのユーザIDのユーザの情報を更新
 func (a *UserAPI) UpdateUser(ctx *gin.Context) {
-	userId, err := a.AuthToken.GetUserId(ctx)
+	userId, err := a.Auth.GetUserId(ctx)
 	if success := successOrAbort(ctx, http.StatusBadRequest, err); !success {
 		return
 	}
@@ -124,4 +130,3 @@ func (a *UserAPI) UpdateUser(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
-

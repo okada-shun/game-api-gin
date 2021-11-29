@@ -1,39 +1,63 @@
 package api
 
 import (
-	"io/ioutil"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"game-api-gin/config"
-	"game-api-gin/gmtoken"
+	"game-api-gin/model"
+	wr "github.com/mroth/weightedrand"
 )
 
-// Gmtokenのインスタンスを返す
-func NewGmtoken(config *config.Config) (*gmtoken.Gmtoken, error) {
-	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
+// dbのgacha_charactersテーブルからgacha_id一覧を取得
+// 引数のgachaIdがその中に含まれていたらtrue、含まれていなかったらfalseを返す
+func (a *GachaAPI) gachaIdContains(gachaId int) (bool, error) {
+	// SELECT gacha_id FROM `gacha_characters`
+	gachaIds, err := a.DB.GetGachaIds()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	// GameTokenコントラクトのアドレスを読み込む
-	contractAddressBytes, err := ioutil.ReadFile(config.Ethereum.ContractAddress)
-	if err != nil {
-		return nil, err
+	for _, v := range gachaIds {
+		if v == gachaId {
+			return true, nil
+		}
 	}
-	contractAddress := common.HexToAddress(string(contractAddressBytes))
-	// 上のコントラクトアドレスのGmtokenインスタンスを作成
-	instance, err := gmtoken.NewGmtoken(contractAddress, client)
-	if err != nil {
-		return nil, err
-	}
-	return instance, nil
+	return false, nil
 }
 
-// イーサリアムネットワークに接続するクライアントを返す
-func NewEthclient(config *config.Config) (*ethclient.Client, error) {
-	client, err := ethclient.Dial(config.Ethereum.NetworkURL)
+// dbのusersテーブルからuser_idが引数userIdのユーザ情報を取得
+// コントラクトからそのユーザアドレスのゲームトークン残高を取得
+// 引数のtimesが残高以下だったらtrue、残高より大きかったらfalseを返す
+func (a *GachaAPI) checkBalance(userId string, times int) (bool, error) {
+	// SELECT * FROM `users` WHERE user_id = '95daec2b-287c-4358-ba6f-5c29e1c3cbdf'
+	user, err := a.DB.GetUser(userId)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return client, nil
+	_, balance, err := a.Tx.GetAddressBalance(user.PrivateKey)
+	if err != nil {
+		return false, err
+	}
+	return times <= balance, nil
+}
+
+// characterInfosからキャラクターのgacha_character_idとweightを取り出しchoicesに格納
+// times回分だけchoicesからWeighted Random Selectionを実行
+func drawGachaCharacterIds(characterInfos []model.CharacterInfo, times int) []string {
+	var choices []wr.Choice
+	for i := 0; i < len(characterInfos); i++ {
+		choices = append(choices, wr.Choice{Item: characterInfos[i].GachaCharacterID, Weight: characterInfos[i].Weight})
+	}
+	var gachaCharacterIdsDrawed []string
+	for i := 0; i < times; i++ {
+		chooser, _ := wr.NewChooser(choices...)
+		gachaCharacterIdsDrawed = append(gachaCharacterIdsDrawed, chooser.Pick().(string))
+	}
+	return gachaCharacterIdsDrawed
+}
+
+// 引数のcharacterInfosからGachaCharacterIDが引数gacha_character_idのデータを取得
+func getCharacterInfo(characterInfos []model.CharacterInfo, gacha_character_id string) model.CharacterInfo {
+	for i := 0; i < len(characterInfos); i++ {
+		if characterInfos[i].GachaCharacterID == gacha_character_id {
+			return characterInfos[i]
+		}
+	}
+	return model.CharacterInfo{}
 }
