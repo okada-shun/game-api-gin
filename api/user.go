@@ -7,11 +7,11 @@ import (
 	
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
-	database "local.packages/database"
-	gmtoken "local.packages/gmtoken"
-	model "local.packages/model"
-	util "local.packages/util"
 	_ "github.com/go-sql-driver/mysql"
+	"game-api-gin/database"
+	"game-api-gin/gmtoken"
+	"game-api-gin/model"
+	"game-api-gin/util"
 )
 
 type UserAPI struct {

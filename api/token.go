@@ -7,7 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	config "local.packages/config"
+	"game-api-gin/config"
 )
 
 type AuthTokenAPI struct {

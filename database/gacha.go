@@ -1,7 +1,7 @@
 package database
 
 import (
-	model "local.packages/model"
+	"game-api-gin/model"
 )
 
 // user_charactersテーブルに引数userCharactersの情報を新規追加

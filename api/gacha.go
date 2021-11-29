@@ -10,10 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	wr "github.com/mroth/weightedrand"
-	database "local.packages/database"
-	gmtoken "local.packages/gmtoken"
-	model "local.packages/model"
-	util "local.packages/util"
+	"game-api-gin/database"
+	"game-api-gin/gmtoken"
+	"game-api-gin/model"
+	"game-api-gin/util"
 )
 
 type GachaAPI struct {

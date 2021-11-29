@@ -7,7 +7,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	config "local.packages/config"
+	"game-api-gin/config"
 )
 
 type GormDatabase struct {
