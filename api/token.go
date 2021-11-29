@@ -16,7 +16,7 @@ type AuthTokenAPI struct {
 
 func NewAuthToken(config *config.Config) *AuthTokenAPI {
 	return &AuthTokenAPI{
-		Idrsa: config.Idrsa,
+		Idrsa: config.AuthToken.Idrsa,
 	}
 }
 

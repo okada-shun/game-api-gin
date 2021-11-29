@@ -7,6 +7,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.12
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/mroth/weightedrand v0.4.1
 	golang.org/x/crypto v0.0.0-20211115234514-b4de73f9ece8

@@ -16,11 +16,11 @@ type GormDatabase struct {
 
 // databaseインスタンスを返す
 func NewDatabase(config *config.Config) (*GormDatabase, error) {
-	passwordBytes, err := ioutil.ReadFile(config.MysqlPass)
+	passwordBytes, err := ioutil.ReadFile(config.Mysql.Password)
 	if err != nil {
 		return nil, err
 	}
-	userBytes, err := ioutil.ReadFile(config.MysqlUser)
+	userBytes, err := ioutil.ReadFile(config.Mysql.User)
 	if err != nil {
 		return nil, err
 	}

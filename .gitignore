@@ -1,3 +1,5 @@
 /mysql/create_user.sql
 
 /gmtoken/minter_private_key.txt
+
+config.yml
