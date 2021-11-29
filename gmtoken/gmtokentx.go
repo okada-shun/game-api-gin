@@ -104,6 +104,67 @@ func (g *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error
 	return address, balance, nil
 }
 
+// 引数valだけethを転送する
+// 引数hexkeyの秘密鍵から生成されるアドレスに転送する
+// トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
+func (g *GmtokenTx) TransferEth(val int64, hexkey string) error {
+	// 16進数の秘密鍵文字列をアドレスに変換
+	address, err := convertKeyToAddress(hexkey)
+	if err != nil {
+		return err
+	}
+	// トランザクションを送るアドレスの秘密鍵を読み込む
+	privateKeyBytes, err := ioutil.ReadFile(g.Config.Ethereum.MinterPrivateKey)
+	if err != nil {
+		return err
+	}
+	privateKey, err := crypto.HexToECDSA(string(privateKeyBytes))
+	if err != nil {
+		return err
+	}
+	// 秘密鍵からアドレスを生成
+	fromAddress, err := convertKeyToAddress(string(privateKeyBytes))
+	if err != nil {
+		return err
+	}
+	// ナンスを生成
+	nonce, err := g.Ethclient.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		return err
+	}
+	// 転送するイーサの量を設定(ここではval eth)
+	value := big.NewInt(val)
+	// ガス価格を設定（SuggestGasPriceで平均のガス価格を取得）
+	gasPrice, err := g.Ethclient.SuggestGasPrice(context.Background())
+	if err != nil {
+		return err
+	}
+	// fmt.Println(gasPrice) // 20000000000
+	var gasLimit uint64 = 10000000
+	var data []byte
+	// ナンス、転送先アドレス、転送するイーサ量、ガス制限、ガス価格、データからトランザクションを作成
+	tx := types.NewTransaction(nonce, address, value, gasLimit, gasPrice, data)
+	// チェーンID(ネットワークID)を取得
+	chainID, err := g.Ethclient.NetworkID(context.Background())
+	if err != nil {
+		return err
+	}
+	// fmt.Println(chainID) // 5777
+	// 送信者の秘密鍵を使用してトランザクションに署名
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		return err
+	}
+	// fmt.Println(signedTx)
+	// トランザクションを送信
+	err = g.Ethclient.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return err
+	}
+	// fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
+	return nil
+}
+
 // コントラクトから、引数valだけゲームトークンを鋳造する
 // 鋳造されたゲームトークンは、引数hexkeyの秘密鍵から生成されるアドレスに付与される
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
