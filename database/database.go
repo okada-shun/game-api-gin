@@ -24,7 +24,7 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	if err != nil {
 		return nil, err
 	}
-	dsn := string(userBytes)+":"+string(passwordBytes)+"@/game_user?charset=utf8&parseTime=True&loc=Local"
+	dsn := string(userBytes) + ":" + string(passwordBytes) + "@/game_user?charset=utf8&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err

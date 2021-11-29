@@ -6,14 +6,14 @@ import (
 	"game-api-gin/auth"
 	"game-api-gin/database"
 	"game-api-gin/model"
-	
+
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type CharacterAPI struct {
 	Auth *auth.Auth
-	DB *database.GormDatabase
+	DB   *database.GormDatabase
 }
 
 type GetCharacterListResponse struct {

@@ -24,15 +24,15 @@ func TestCharacterSuite(t *testing.T) {
 
 type CharacterSuite struct {
 	suite.Suite
-	uapi *UserAPI
-	gapi *GachaAPI
-	capi *CharacterAPI
-	auth *auth.Auth
-	db *database.GormDatabase
-	tx *gmtoken.GmtokenTx
-	ctx *gin.Context
-	recorder *httptest.ResponseRecorder
-	token string
+	uapi       *UserAPI
+	gapi       *GachaAPI
+	capi       *CharacterAPI
+	auth       *auth.Auth
+	db         *database.GormDatabase
+	tx         *gmtoken.GmtokenTx
+	ctx        *gin.Context
+	recorder   *httptest.ResponseRecorder
+	token      string
 	privatekey string
 }
 

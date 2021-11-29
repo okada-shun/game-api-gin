@@ -12,12 +12,12 @@ type Config struct {
 	}
 	Ethereum struct {
 		MinterPrivateKey string `yaml:"minterprivatekey"`
-		ContractAddress string `yaml:"contractaddress"`
-		NetworkURL string `yaml:"networkurl"`
+		ContractAddress  string `yaml:"contractaddress"`
+		NetworkURL       string `yaml:"networkurl"`
 	}
 	Mysql struct {
 		Password string `yaml:"password"`
-		User string `yaml:"user"`
+		User     string `yaml:"user"`
 	}
 }
 
@@ -39,8 +39,8 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		Auth: cfg.Auth,
+		Auth:     cfg.Auth,
 		Ethereum: cfg.Ethereum,
-		Mysql: cfg.Mysql,
+		Mysql:    cfg.Mysql,
 	}, nil
 }

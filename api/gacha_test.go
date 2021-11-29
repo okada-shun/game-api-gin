@@ -23,14 +23,14 @@ func TestGachaSuite(t *testing.T) {
 
 type GachaSuite struct {
 	suite.Suite
-	uapi *UserAPI
-	gapi *GachaAPI
-	auth *auth.Auth
-	db *database.GormDatabase
-	tx *gmtoken.GmtokenTx
-	ctx *gin.Context
-	recorder *httptest.ResponseRecorder
-	token string
+	uapi       *UserAPI
+	gapi       *GachaAPI
+	auth       *auth.Auth
+	db         *database.GormDatabase
+	tx         *gmtoken.GmtokenTx
+	ctx        *gin.Context
+	recorder   *httptest.ResponseRecorder
+	token      string
 	privatekey string
 }
 
@@ -89,7 +89,7 @@ func (s *GachaSuite) Test_DrawGacha() {
 	var drawGachaResponse DrawGachaResponse
 	json.Unmarshal(body, &drawGachaResponse)
 	assert.Equal(s.T(), 10, len(drawGachaResponse.Results))
-	
+
 	s.ctx.Request = httptest.NewRequest("GET", "/user/get", nil)
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)

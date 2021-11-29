@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"game-api-gin/config"
-	
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,9 +19,9 @@ import (
 )
 
 type GmtokenTx struct {
-	Config *config.Config
+	Config    *config.Config
 	Ethclient *ethclient.Client
-	Gmtoken *Gmtoken
+	Gmtoken   *Gmtoken
 }
 
 // Gmtokenのインスタンスを返す
@@ -64,8 +64,8 @@ func NewGmtokenTx(config *config.Config) (*GmtokenTx, error) {
 		return nil, err
 	}
 	return &GmtokenTx{
-		Config: config,
-		Gmtoken: gmtokenInstance,
+		Config:    config,
+		Gmtoken:   gmtokenInstance,
 		Ethclient: ethclient,
 	}, nil
 }

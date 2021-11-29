@@ -3,7 +3,7 @@ package database
 import (
 	"game-api-gin/model"
 	"game-api-gin/util"
-	
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
