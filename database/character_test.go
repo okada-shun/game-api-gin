@@ -4,7 +4,7 @@ import (
 	"game-api-gin/model"
 	"game-api-gin/util"
 
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

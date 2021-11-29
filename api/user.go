@@ -17,8 +17,8 @@ import (
 
 type UserAPI struct {
 	Auth *auth.Auth
-	DB *database.GormDatabase
-	Tx *gmtoken.GmtokenTx
+	DB   *database.GormDatabase
+	Tx   *gmtoken.GmtokenTx
 }
 
 type CreateUserResponse struct {

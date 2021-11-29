@@ -23,13 +23,13 @@ func TestUserSuite(t *testing.T) {
 
 type UserSuite struct {
 	suite.Suite
-	uapi *UserAPI
-	auth *auth.Auth
-	db *database.GormDatabase
-	tx *gmtoken.GmtokenTx
-	ctx *gin.Context
+	uapi     *UserAPI
+	auth     *auth.Auth
+	db       *database.GormDatabase
+	tx       *gmtoken.GmtokenTx
+	ctx      *gin.Context
 	recorder *httptest.ResponseRecorder
-	token string
+	token    string
 }
 
 func (s *UserSuite) BeforeTest(string, string) {

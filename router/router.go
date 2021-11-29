@@ -15,17 +15,17 @@ func CreateRouter(auth *auth.Auth, db *database.GormDatabase, gmtokenTx *gmtoken
 	router := gin.Default()
 	userHandler := &api.UserAPI{
 		Auth: auth,
-		DB: db,
-		Tx: gmtokenTx,
+		DB:   db,
+		Tx:   gmtokenTx,
 	}
 	gachaHandler := &api.GachaAPI{
 		Auth: auth,
-		DB: db,
-		Tx: gmtokenTx,
+		DB:   db,
+		Tx:   gmtokenTx,
 	}
 	characterHandler := &api.CharacterAPI{
 		Auth: auth,
-		DB: db,
+		DB:   db,
 	}
 	router.GET("/", home)
 	router.POST("/user/create", userHandler.CreateUser)
