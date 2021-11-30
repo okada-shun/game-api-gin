@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"game-api-gin/model"
 )
 
@@ -16,11 +17,24 @@ func (d *GormDatabase) GetUser(userId string) (model.User, error) {
 	var user model.User
 	// SELECT * FROM `users` WHERE user_id = '95daec2b-287c-4358-ba6f-5c29e1c3cbdf'
 	err := d.DB.Where("user_id = ?", userId).Find(&user).Error
-	return user, err
+	if err != nil {
+		return model.User{}, err
+	} else if (user == model.User{}) {
+		return model.User{}, fmt.Errorf("no data")
+	} else {
+		return user, err
+	}
 }
 
 // usersテーブルからユーザIDが引数userIdのユーザの情報を、引数userのものに更新
 func (d *GormDatabase) UpdateUser(user model.User, userId string) error {
 	// UPDATE `users` SET `name`='bbb' WHERE user_id = '95daec2b-287c-4358-ba6f-5c29e1c3cbdf'
-	return d.DB.Model(&user).Where("user_id = ?", userId).Update("name", user.Name).Error
+	err := d.DB.Model(&user).Where("user_id = ?", userId).Update("name", user.Name).Error
+	if err != nil {
+		return err
+	} else if (user == model.User{}) {
+		return fmt.Errorf("no data")
+	} else {
+		return err
+	}
 }

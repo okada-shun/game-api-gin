@@ -10,8 +10,7 @@ import (
 
 func (s *DatabaseSuite) TestUser() {
 	user, err := s.db.GetUser("asdf")
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), model.User{}, user)
+	assert.Error(s.T(), err)
 
 	userId, err := util.CreateUUId()
 	require.NoError(s.T(), err)
