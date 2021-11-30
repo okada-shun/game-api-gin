@@ -19,7 +19,7 @@ func NewAuth(config *config.Config) *Auth {
 }
 
 // jwtトークンを照合する
-func (a *Auth) verifyToken(tokenString string) (*jwt.Token, error) {
+func (a *Auth) VerifyToken(tokenString string) (*jwt.Token, error) {
 	// 秘密鍵を取得
 	signBytes, err := ioutil.ReadFile(a.Idrsa)
 	if err != nil {

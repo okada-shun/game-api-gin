@@ -9,7 +9,7 @@ import (
 // トークンからユーザID情報を取り出し、返す
 func (a *Auth) GetUserId(ctx *gin.Context) (string, error) {
 	tokenString := ctx.Request.Header.Get("x-token")
-	token, err := a.verifyToken(tokenString)
+	token, err := a.VerifyToken(tokenString)
 	if err != nil {
 		return "", err
 	}
