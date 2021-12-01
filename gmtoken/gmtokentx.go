@@ -71,7 +71,7 @@ func NewGmtokenTx(config *config.Config) (*GmtokenTx, error) {
 }
 
 // 16進数の秘密鍵文字列をイーサリアムアドレスに変換
-func convertKeyToAddress(hexkey string) (common.Address, error) {
+func ConvertKeyToAddress(hexkey string) (common.Address, error) {
 	// 16進数の秘密鍵文字列を読み込む
 	privateKey, err := crypto.HexToECDSA(hexkey)
 	if err != nil {
@@ -92,7 +92,7 @@ func convertKeyToAddress(hexkey string) (common.Address, error) {
 // コントラクトからそのアドレスのゲームトークン残高を取り出す
 // アドレスと残高を返す
 func (g *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error) {
-	address, err := convertKeyToAddress(hexkey)
+	address, err := ConvertKeyToAddress(hexkey)
 	if err != nil {
 		return common.Address{}, 0, err
 	}
@@ -109,7 +109,7 @@ func (g *GmtokenTx) GetAddressBalance(hexkey string) (common.Address, int, error
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
 func (g *GmtokenTx) TransferEth(val int64, hexkey string) error {
 	// 16進数の秘密鍵文字列をアドレスに変換
-	address, err := convertKeyToAddress(hexkey)
+	address, err := ConvertKeyToAddress(hexkey)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (g *GmtokenTx) TransferEth(val int64, hexkey string) error {
 		return err
 	}
 	// 秘密鍵からアドレスを生成
-	fromAddress, err := convertKeyToAddress(string(privateKeyBytes))
+	fromAddress, err := ConvertKeyToAddress(string(privateKeyBytes))
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (g *GmtokenTx) TransferEth(val int64, hexkey string) error {
 // トランザクションの送信者は、minter_private_key.txtの秘密鍵から生成されるアドレスである
 func (g *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 	// 16進数の秘密鍵文字列をアドレスに変換
-	address, err := convertKeyToAddress(hexkey)
+	address, err := ConvertKeyToAddress(hexkey)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (g *GmtokenTx) MintGmtoken(val int, hexkey string) error {
 		return err
 	}
 	// 秘密鍵からアドレスを生成
-	fromAddress, err := convertKeyToAddress(string(privateKeyBytes))
+	fromAddress, err := ConvertKeyToAddress(string(privateKeyBytes))
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func (g *GmtokenTx) BurnGmtoken(val int, hexkey string) error {
 		return err
 	}
 	// 16進数の秘密鍵文字列をアドレスに変換
-	address, err := convertKeyToAddress(hexkey)
+	address, err := ConvertKeyToAddress(hexkey)
 	if err != nil {
 		return err
 	}

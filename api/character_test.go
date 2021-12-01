@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"game-api-gin/auth"
@@ -12,6 +11,8 @@ import (
 	"game-api-gin/database"
 	"game-api-gin/gmtoken"
 	"game-api-gin/model"
+	"game-api-gin/test"
+	"game-api-gin/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -24,16 +25,15 @@ func TestCharacterSuite(t *testing.T) {
 
 type CharacterSuite struct {
 	suite.Suite
-	uapi       *UserAPI
-	gapi       *GachaAPI
-	capi       *CharacterAPI
-	auth       *auth.Auth
-	db         *database.GormDatabase
-	tx         *gmtoken.GmtokenTx
-	ctx        *gin.Context
-	recorder   *httptest.ResponseRecorder
-	token      string
-	privatekey string
+	gapi     *GachaAPI
+	capi     *CharacterAPI
+	auth     *auth.Auth
+	db       *database.GormDatabase
+	tx       *gmtoken.GmtokenTx
+	ctx      *gin.Context
+	recorder *httptest.ResponseRecorder
+	token    string
+	userId   string
 }
 
 func (s *CharacterSuite) BeforeTest(string, string) {
@@ -49,9 +49,19 @@ func (s *CharacterSuite) BeforeTest(string, string) {
 	t, err := gmtoken.NewGmtokenTx(config)
 	assert.Nil(s.T(), err)
 	s.tx = t
-	s.uapi = &UserAPI{Auth: s.auth, DB: s.db, Tx: s.tx}
 	s.gapi = &GachaAPI{Auth: s.auth, DB: s.db, Tx: s.tx}
 	s.capi = &CharacterAPI{Auth: s.auth, DB: s.db}
+
+	userId, err := util.CreateUUId()
+	assert.Nil(s.T(), err)
+	s.userId = userId
+	privateKey, err := util.CreatePrivateKey()
+	assert.Nil(s.T(), err)
+	s.db.CreateUser(model.User{UserID: userId, Name: "mike", PrivateKey: privateKey})
+	token, err := s.auth.CreateToken(userId)
+	assert.Nil(s.T(), err)
+	s.token = token
+
 	s.T().Log("BeforeTest!!")
 }
 
@@ -60,27 +70,7 @@ func (s *CharacterSuite) AfterTest(suiteName, testName string) {
 	s.T().Log("AfterTest!!")
 }
 
-func (s *CharacterSuite) SetTokenKey() {
-	s.ctx.Request = httptest.NewRequest("POST", "/user/create", strings.NewReader(`{"name":"satou"}`))
-	s.ctx.Request.Header.Set("Content-Type", "application/json")
-	s.uapi.CreateUser(s.ctx)
-	body, _ := ioutil.ReadAll(s.recorder.Body)
-	var createUserResponse CreateUserResponse
-	json.Unmarshal(body, &createUserResponse)
-	s.token = createUserResponse.Token
-	s.ctx.Request.Header.Set("x-token", s.token)
-
-	userId, err := s.auth.GetUserId(s.ctx)
-	assert.Nil(s.T(), err)
-	user, err := s.db.GetUser(userId)
-	assert.Nil(s.T(), err)
-	s.privatekey = user.PrivateKey
-}
-
 func (s *CharacterSuite) Test_GetCharacterList() {
-	s.SetTokenKey()
-	s.gapi.Tx.TransferEth(200000000000000000, s.privatekey)
-
 	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
 	s.ctx.Request.Header.Set("x-token", s.token)
@@ -88,23 +78,27 @@ func (s *CharacterSuite) Test_GetCharacterList() {
 	s.capi.GetCharacterList(s.ctx)
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
+
 	body, _ := ioutil.ReadAll(s.recorder.Body)
 	var getCharacterListResponse GetCharacterListResponse
 	json.Unmarshal(body, &getCharacterListResponse)
 	assert.Equal(s.T(), 0, len(getCharacterListResponse.Characters))
 	assert.Equal(s.T(), []model.Character{}, getCharacterListResponse.Characters)
+}
 
-	s.ctx.Request = httptest.NewRequest("POST", "/gacha/draw", strings.NewReader(`{"gacha_id":1,"times":10}`))
-	s.ctx.Request.Header.Set("Content-Type", "application/json")
-	s.ctx.Request.Header.Set("x-token", s.token)
-
-	s.gapi.DrawGacha(s.ctx)
-
-	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ = ioutil.ReadAll(s.recorder.Body)
-	var drawGachaResponse DrawGachaResponse
-	json.Unmarshal(body, &drawGachaResponse)
-	assert.Equal(s.T(), 10, len(drawGachaResponse.Results))
+func (s *CharacterSuite) Test_GetCharacterList_WithCharacter() {
+	var gachaCharacterIds []string
+	s.db.DB.Table("gacha_characters").Select("gacha_character_id").Where("gacha_id = ?", 1).Scan(&gachaCharacterIds)
+	var userCharacters []model.UserCharacter
+	var userCharacterIds []string
+	for _, v := range gachaCharacterIds {
+		userCharacterId, err := util.CreateUUId()
+		assert.Nil(s.T(), err)
+		userCharacterIds = append(userCharacterIds, userCharacterId)
+		userCharacter := model.UserCharacter{UserCharacterID: userCharacterId, UserID: s.userId, GachaCharacterID: v}
+		userCharacters = append(userCharacters, userCharacter)
+	}
+	s.gapi.DB.CreateUserCharacters(userCharacters)
 
 	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
@@ -113,15 +107,46 @@ func (s *CharacterSuite) Test_GetCharacterList() {
 	s.capi.GetCharacterList(s.ctx)
 
 	assert.Equal(s.T(), 200, s.recorder.Code)
-	body, _ = ioutil.ReadAll(s.recorder.Body)
+
+	body, _ := ioutil.ReadAll(s.recorder.Body)
+	var getCharacterListResponse GetCharacterListResponse
 	json.Unmarshal(body, &getCharacterListResponse)
 	assert.Equal(s.T(), 10, len(getCharacterListResponse.Characters))
+	for _, v := range getCharacterListResponse.Characters {
+		contains := test.Contains(userCharacterIds, v.UserCharacterID)
+		assert.Equal(s.T(), true, contains)
+	}
+	var characterIds []string
+	s.db.DB.Table("gacha_characters").Select("gacha_character_id").Where("gacha_id = ?", 1).Scan(&characterIds)
+	for _, v := range getCharacterListResponse.Characters {
+		contains := test.Contains(characterIds, v.CharacterID)
+		assert.Equal(s.T(), true, contains)
+	}
+	var characterNames []string
+	s.db.DB.Table("gacha_characters").Select("characters.character_name").
+		Joins("join characters on gacha_characters.character_id = characters.id").
+		Where("gacha_id = ?", 1).Scan(&characterNames)
+	for _, v := range getCharacterListResponse.Characters {
+		contains := test.Contains(characterNames, v.Name)
+		assert.Equal(s.T(), true, contains)
+	}
 }
 
 func (s *CharacterSuite) Test_GetCharacterList_ByInvalidToken() {
+	var gachaCharacterIds []string
+	s.db.DB.Table("gacha_characters").Select("gacha_character_id").Where("gacha_id = ?", 1).Scan(&gachaCharacterIds)
+	var userCharacters []model.UserCharacter
+	for _, v := range gachaCharacterIds {
+		userCharacterId, err := util.CreateUUId()
+		assert.Nil(s.T(), err)
+		userCharacter := model.UserCharacter{UserCharacterID: userCharacterId, UserID: s.userId, GachaCharacterID: v}
+		userCharacters = append(userCharacters, userCharacter)
+	}
+	s.gapi.DB.CreateUserCharacters(userCharacters)
+
 	s.ctx.Request = httptest.NewRequest("GET", "/character/list", nil)
 	s.ctx.Request.Header.Set("Content-Type", "application/json")
-	s.ctx.Request.Header.Set("x-token", "InvalidToken")
+	s.ctx.Request.Header.Set("x-token", s.token+"InvalidToken")
 
 	s.capi.GetCharacterList(s.ctx)
 

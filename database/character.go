@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"game-api-gin/model"
 )
 
@@ -28,7 +29,13 @@ func (d *GormDatabase) GetCharacterInfos(gacha_id int) ([]model.CharacterInfo, e
 		Joins("join characters on gacha_characters.character_id = characters.id").
 		Joins("join rarities on gacha_characters.rarity_id = rarities.id").
 		Where("gacha_id = ?", gacha_id).Scan(&characterInfos).Error
-	return characterInfos, err
+	if err != nil {
+		return []model.CharacterInfo{}, err
+	} else if len(characterInfos) == 0 {
+		return []model.CharacterInfo{}, fmt.Errorf("no data")
+	} else {
+		return characterInfos, err
+	}
 }
 
 // user_charactersテーブルからユーザIDが引数user_idのデータを取得
